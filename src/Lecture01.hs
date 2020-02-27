@@ -148,7 +148,7 @@ whatSalary = if isGoodWorker then 100000 else 10000
   Например, 2 + 3 - выражение. "Hello, world!" - тоже выражение.
   
   Поскольку `if_then_else` — это выражение, то у него должен быть тип.
-
+if 
   Рассмотрим выражение: (if a then 3 else c) :: X
   и попробуем порассуждать что какой тип должен быть на месте X.
 
@@ -247,7 +247,7 @@ someArithmeticCalculations =
     - если n < 0, то "negative"
 -}
 tellSign :: Int -> String
-tellSign n = error "not implemented"
+tellSign n = if n == 0 then "zero" else if n > 0 then "positive" else "negative"
 
 {-
   `howManyDigits` возвращает количество цифр целого числа `n`:
@@ -256,18 +256,18 @@ tellSign n = error "not implemented"
     - если n >= 100, то "three-digit or more"
 -}
 howManyDigits :: Int -> String
-howManyDigits n = error "not implemented"
+howManyDigits n = if n > -10 && n < 10 then "single" else if n > -100 && n < 100 then "two-digit" else "three-digit or more"
 
 {-
   `describeNumber` возвращает полное описание целого числа, используя
   функции `tellSign` и `howManyDigits`:
     - если n = 0, то "zero single"
     - если n = 6, то "positive single"
-    - если n = -12, то "negative two-digit"
+    - если n = -12, то "negative two-digits"
     - если n >= 100, то "positive three-digit or more"
 -}
 describeNumber :: Int -> String
-describeNumber n = error "not implemented"
+describeNumber n = tellSign n ++ " " ++ howManyDigits n
 
 -- </Задачи для самостоятельного решения>
 
@@ -303,7 +303,7 @@ makeZero x =
   больших чисел.
 -}
 factorial :: Integer -> Integer
-factorial n = error "not implemented"
+factorial n = if n == 0 then 1 else n * factorial (n-1)
 
 {-
   На вход приходит целое число. Необходимо вернуть количество цифр:
@@ -312,7 +312,8 @@ factorial n = error "not implemented"
     - если n = 144545, то 6
 -}
 digitsCount :: Int -> Int
-digitsCount n = error "not implemented"
+digitsCount n = if div (abs n) 10 == 0 then 1 else 1 + (digitsCount $ div (abs n) 10)
+  
 
 -- </Задачи для самостоятельного решения>
 
