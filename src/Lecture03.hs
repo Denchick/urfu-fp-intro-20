@@ -298,7 +298,7 @@ module Lecture03 where
     - not false ->> true
 -}
 not :: String
-not = "notimplemented"
+not = "\\x.ifelse x false true"
 
 {-
   Напишите терм `and`:
@@ -309,7 +309,7 @@ not = "notimplemented"
     - and false false ->> false
 -}
 and :: String
-and = "notimplemented"
+and = "\\x.\\y.ifelse x (ifelse y true false) false"
 
 {-
   Напишите терм `or`:
@@ -320,7 +320,7 @@ and = "notimplemented"
     - or false false ->> false
 -}
 or :: String
-or = "notimplemented"
+or = "\\x.\\y.ifelse x true (ifelse y true false)"
 -- </Задачи для самостоятельного решения>
 
 {-
@@ -373,7 +373,7 @@ or = "notimplemented"
   isZero n = False
 -}
 isZero :: String
-isZero = "notimplemented"
+isZero = "\\x.x (\\y.false) true"
 
 -- </Задачи для самостоятельного решения>
 
@@ -457,9 +457,11 @@ isZero = "notimplemented"
   Для решения вам понадобятся уже известные функции succ, plus, iszero, а так же функция новая функция pred.
   Мы не будем приводить её определение. Попробуйте запустить её для нескольких нумералов.
   Что она возвращает? Чему равен pred pred 1?
+      fact = Y F
+         = Y (λf.λn.ifelse (iszero n) (1) (mult n (f (pred n))))
 -}
 fib :: String
-fib = "notimplemented"
+fib = "Y (\\f.\\n.ifelse ((\\x.x (\\y.false) true) n) (1) (plus (f (pred n)) (f (pred (pred n)))))";
 
 -- </Задачи для самостоятельного решения>
 
