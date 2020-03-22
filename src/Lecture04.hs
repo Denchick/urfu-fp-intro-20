@@ -329,7 +329,11 @@ newtype AdoptedAnimal = AdoptedAnimal
     - Month
     - Year
 -}
-showDate :: Int -> Int -> Int -> String
+newtype Day = Day {getDay :: Int} deriving (Eq, Show)
+newtype Month = Month {getMonth :: Int} deriving (Eq, Show)
+newtype Year = Year {getYear :: Int} deriving (Eq, Show)
+
+showDate :: Day -> Month -> Year -> String
 showDate day month year =
   "Day " ++ show day ++ " of " ++ show month ++ " month, year " ++ show year
 
@@ -370,7 +374,9 @@ showDate day month year =
   - uncons [1,2,3] ~> (Just 1, [2, 3])
 -}
 uncons :: [a] -> (Maybe a, [a])
-uncons l = error "not implemented"
+uncons [] = (Nothing, [])
+uncons [x] = (Just x, [])
+uncons (x:xs) = (Just x, xs)
 
 {-
   zipMaybe возвращает пару значений, если оба значения не Nothing:
@@ -380,7 +386,10 @@ uncons l = error "not implemented"
   - zipMaybe (Just "hey") (Just 2) ~> Just ("hey", 2)
 -}
 zipMaybe :: Maybe a -> Maybe b -> Maybe (a, b)
-zipMaybe a b = error "not implemented"
+zipMaybe Nothing _ = Nothing
+zipMaybe _ Nothing = Nothing
+zipMaybe (Just a) (Just b) = Just (a, b)
+-- zipMaybe a b = error "not implemented"
 
 -- </Задачи для самостоятельного решения>
 
@@ -415,7 +424,13 @@ zipMaybe a b = error "not implemented"
       - сообщать "Can't adopt lions :("
 -}
 adopt :: AnimalWithType -> Either String AdoptedAnimal
-adopt = error "not implemented"
+adopt (AnimalWithType age name animalType) = 
+  let animal = AnimalWithType age name animalType in
+  case animalType of
+  Lion -> Left "Can't adopt lions :("
+  Cat -> if age < 5 && take 1 name /= "D" then Right (AdoptedAnimal animal) else Left "Can't adopt cat"
+  Dog -> if age > 1 then Right (AdoptedAnimal animal) else Left "Can't adopt dog"
+  Duck -> if name == "Daisy" then Right (AdoptedAnimal animal) else Left "Quack"
 
 -- </Задачи для самостоятельного решения>
 
@@ -469,21 +484,21 @@ adopt = error "not implemented"
 
   Посчитайте cardinality для:
 
-  1. |Bool| = 
+  1. |Bool| = 2
 
-  2. |(Bool, Bool)| =
+  2. |(Bool, Bool)| = 2 x 2 = 4
 
-    data (a, b) = (a, b)
+    data (a, b) = (a, b) = |a| x |b|
 
-  3. |Maybe a| =
+  3. |Maybe a| = |a| + 1
 
-    data Maybe a = Nothing | Just a
+    data Maybe a = Nothing | Just a = |a| + 1
 
-  4. |Bool -> Bool| =
+  4. |Bool -> Bool| = 2^2 = 4
 
-  5. |Bool -> (Bool, Bool)| =
+  5. |Bool -> (Bool, Bool)| = 4^2 = 16
 
-  6. |Bool -> (Bool, a)| =
+  6. |Bool -> (Bool, a)| = (2 x |a|)^2
 
 -}
 
@@ -494,7 +509,7 @@ adopt = error "not implemented"
   и вспомогательные функции. Тесты написаны так, что вспомогательные функции
   зависят друг друга. 
 -}
-data Tree a
+data Tree a = Leaf | Node (Tree a) a (Tree a)
   {-
     Определите конструкторы для бинарного дерева:
       - лист
@@ -504,11 +519,12 @@ data Tree a
 
 -- Возвращает пустое дерево
 empty :: Tree a
-empty = error "not implemented"
+empty = Leaf
 
 -- Возвращает True, если дерево - это лист
 isLeaf :: Tree a -> Bool
-isLeaf t = error "not implemented"
+isLeaf Leaf = True
+isLeaf _ = False
 
 -- Возвращает True, если дерево - не лист
 isNode :: Tree a -> Bool
@@ -516,16 +532,18 @@ isNode = not . isLeaf
 
 -- Если дерево это нода, то возвращает текущее значение ноды
 getValue :: Tree a -> Maybe a
-getValue t = error "not implemented"
+getValue Leaf = Nothing
+getValue (Node _ value _) = Just value 
 
 -- Если дерево это нода, то возвращает левое поддерево
 getLeft :: Tree a -> Maybe (Tree a)
-getLeft t = error "not implemented"
+getLeft Leaf = Nothing
+getLeft (Node left _ _) = Just left
 
 -- Если дерево это нода, то возвращает правое поддерево
 getRight :: Tree a -> Maybe (Tree a)
-getRight t = error "not implemented"
-
+getRight Leaf = Nothing
+getRight (Node _ _ right) = Just right
 {-
   Вставка значения в дерево:
 
@@ -539,9 +557,14 @@ getRight t = error "not implemented"
 
    В этом задании вам поможет функция `compare`. Она умеет возвращать
    три значения: GT, EQ, LT. Попробуйте поиграться в repl.
--} 
+-}
+
 insert :: Ord a => a -> Tree a -> Tree a
-insert v t = error "not implemented"
+insert vertex Leaf = Node Leaf vertex Leaf
+insert vertex (Node left value right) = case compare vertex value of
+  EQ -> Node left value right
+  LT -> Node (insert vertex left) value right
+  GT -> Node left value (insert vertex right)
 
 {-
   Проверка наличия значения в дереве:
@@ -553,6 +576,10 @@ insert v t = error "not implemented"
     - isElem 4 $ insert 1 $ insert 3 $ insert 2 empty ~> False
 -}
 isElem :: Ord a => a -> Tree a -> Bool
-isElem v tree = error "not implemented"
+isElem _ Leaf = False
+isElem vertex (Node left value right) = case compare vertex value of
+  EQ -> True
+  LT -> isElem vertex left
+  GT -> isElem vertex right
 
 -- </Задачи для самостоятельного решения>
