@@ -41,18 +41,20 @@ import qualified Data.IntMap as Map
 data Stack a = Stack [a] deriving (Eq, Show)
 
 createStack :: Stack a
-createStack = error "not implemented"
+createStack = Stack []
 
 -- Обратите внимание, что все структуры данных неизменяемые (immutable). Значит, если операция
 -- предполагает изменение структуры, то она просто должна возвращать новую уже изменённую версию.
 push :: Stack a -> a -> Stack a
-push stack x = error "not implemented"
+push (Stack stack) x = Stack (x:stack)
 
 pop :: Stack a -> Maybe (Stack a)
-pop stack = error "not implemented"
+pop (Stack []) = Nothing
+pop (Stack (x:xs)) = Just $ Stack $ xs
 
 peek :: Stack a -> Maybe a
-peek stack = error "not implemented"
+peek (Stack []) = Nothing
+peek (Stack (x:xs)) = Just x
 
 -- </Задачи для самостоятельного решения>
 
@@ -170,17 +172,20 @@ dequeue' (q:qs) = (q, qs)             -- возвращаем (элемент, �
 data Queue a = Queue [a] [a] deriving (Eq, Show)
 
 createQueue :: Queue a
-createQueue = error "not implemented"
+createQueue = Queue [] []
 
 enqueue :: Queue a -> a -> Queue a
-enqueue queue x = error "not implemented"
+enqueue (Queue l r) x = Queue (x:l) r
 
 -- если очередь пустая возвращает ошибку
 dequeue :: Queue a -> (a, Queue a)
-dequeue queue = error "not implemented"
+dequeue (Queue [] []) = error "tried dequeue empty queue"
+dequeue (Queue ls []) = dequeue (Queue [] (reverse ls))
+dequeue (Queue ls (r:rs)) = (r, Queue ls rs)
 
 isEmpty :: Queue a -> Bool
-isEmpty queue = error "not implemented"
+isEmpty (Queue [] []) = True
+isEmpty _  = False
 
 -- </Задачи для самостоятельного решения>
 
@@ -194,7 +199,7 @@ isEmpty queue = error "not implemented"
   к элементу по индексу.
 
   Попробуем посмотреть, что можно использовать в Haskell вместо привычных массивов.
-  Под "массивом" мы будем подразумевать структуру данных с быстрым, желательно контастным, чтением
+  Под "массивом" мы будем подразумевать структуру данных с быстрым, желательно констатным, чтением
   и записью по индексу.
 
   На самом деле, в Haskell тоже можно работать с памятью, ведь на Haskell пишут настоящие программы.
@@ -378,14 +383,46 @@ emptySet = Set.intersection evenSet oddSet
 
 -- Названия методов можно менять
 class IntArray a where
-  fromList :: [(Int, Int)] -> a    -- создать из списка пар [(index, value)]
+  fromList :: [Int] -> a    -- создать из списка пар [(index, value)]
   toList :: a -> [(Int, Int)]      -- преобразовать в список пар [(index, value)]
   update :: a -> Int -> Int -> a   -- обновить элемент по индексу
   (#) :: a -> Int -> Int           -- получить элемент по индексу
 
+instance IntArray ([Int]) where
+  fromList list = replicate (1 + (maximum list)) 0
+  toList list = zip [0..] list
+  update list index value = (take index list) ++ [value] ++ (drop (index + 1) list)
+  (#) list index = list !! index
+
+instance IntArray (Array Int Int) where
+  fromList list = array (0, n) (zip [0..n] $ repeat 0)
+    where n = maximum list
+  toList list = assocs list
+  update list index value = list // [(index, value)]
+  (#) list index = list ! index
+
+instance IntArray (Map.IntMap Int) where
+    fromList list = Map.fromList [(i, 0) | i <- list]
+    toList list = Map.toList list
+    update list index value = Map.insert index value list
+    (#) list index = list Map.! index    
+
 -- Сортирует массив целых неотрицательных чисел по возрастанию
 countingSort :: forall a. IntArray a => [Int] -> [Int]
-countingSort = error "not implemented"
+countingSort [] = []
+countingSort list = concat [replicate times number | (number, times) <- toList (count' list) ]
+  where
+    count' :: [Int] -> a
+    count' list = count (fromList list) list
+    
+    count :: a -> [Int] -> a
+    count counter [] = counter
+    count counter (index:others) = count (inc counter  index) others
+
+    inc :: a -> Int -> a
+    inc counter index = update counter index (((#) counter index) + 1)
+    
+    
 
 {-
   Tак можно запустить функцию сортировки с использованием конкретной реализацией массива:
