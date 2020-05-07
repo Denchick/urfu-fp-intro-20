@@ -2,6 +2,14 @@
 
 module Lecture09 where
 
+import System.Random
+import System.Directory
+import System.IO
+import System.FilePath
+import Data.List
+import Data.UUID as UUID
+import Data.UUID.V4 as UUIDv4
+
 {-
   09: Монады IO и Random
 
@@ -72,15 +80,15 @@ module Lecture09 where
     http://hackage.haskell.org/package/base-4.12.0.0/docs/System-IO.html
 -}
 
-newtype TodoList = TodoList FilePath deriving (Eq, Show)
+newtype TodoList = TodoList FilePath deriving (Eq, Show, Read)
 
-newtype Id = Id String deriving (Eq, Show)
+newtype Id = Id String deriving (Eq, Show, Read)
 
-newtype Title = Title String deriving (Eq, Show)
+newtype Title = Title String deriving (Eq, Show, Read)
 
-newtype Deadline = Deadline String deriving (Eq, Show)
+newtype Deadline = Deadline String deriving (Eq, Show, Read)
 
-newtype Content = Content String deriving (Eq, Show)
+newtype Content = Content String deriving (Eq, Show, Read)
 
 -- Тип для чтения Todo
 data Todo = Todo
@@ -89,48 +97,93 @@ data Todo = Todo
   , content :: Content
   , deadline :: Deadline
   , isDone :: Bool
-  } deriving (Eq, Show)
+  } deriving (Eq, Show, Read)
+
+
+instance Ord Todo where
+  compare (Todo _ _ _ (Deadline d1) _) (Todo _ _ _ (Deadline d2) _) = compare d1 d2
 
 -- Тип для редактирования Todo
 data TodoEdit = TodoEdit
   { title :: Title
   , content :: Content
   , deadline :: Deadline
-  } deriving (Eq, Show)
+  } deriving (Eq, Show, Read)
 
 createTodoList :: FilePath -> IO TodoList
-createTodoList rootFolder = error "not implemented"
+createTodoList rootFolder = do
+  createDirectory rootFolder
+  return $ TodoList rootFolder
+
+getTodoPath :: TodoList -> Id -> FilePath
+getTodoPath (TodoList todoList) (Id id) = joinPath [todoList, id]
 
 addTodo :: TodoList -> Title -> Content -> Deadline -> IO Id
-addTodo todoList title text deadline = error "not implemented"
+addTodo todoList title content deadline = do
+  id <- UUIDv4.nextRandom
+  let todoId = Id $ UUID.toString id
+  let filepath = getTodoPath todoList todoId
+  file <- openFile filepath WriteMode
+  hPutStr file $ show $ Todo todoId title content deadline False
+  hClose file
+  return todoId
 
 readTodo :: TodoList -> Id -> IO Todo
-readTodo todoList id = error "not implemented"
+readTodo todoList id = do
+  todo <- readFile $ getTodoPath todoList id
+  return $ read todo
 
 showTodo :: TodoList -> Id -> IO ()
-showTodo todoList id = error "not implemented"
+showTodo todoList id = do
+  todo <- readTodo todoList id
+  putStrLn $ show todo
 
 removeTodo :: TodoList -> Id -> IO ()
-removeTodo todoList id = error "not implemented"
+removeTodo todoList id = removeFile $ getTodoPath todoList id
+
+updateTodo :: TodoList -> Id -> Todo -> IO ()
+updateTodo todoList todoId todo = do
+  let filepath = getTodoPath todoList todoId
+  removeFile filepath
+  file <- openFile filepath WriteMode
+  hPutStr file $ show todo
+  hClose file
 
 editTodo :: TodoList -> Id -> TodoEdit -> IO ()
-editTodo todoList id update = error "not implemented"
+editTodo todoList todoId (TodoEdit title content deadline) = do
+
+  todo <- readTodo todoList todoId
+  updateTodo todoList todoId todo {
+      title = title,
+      content = content,
+      deadline = deadline
+    }
 
 setTodoAsDone :: TodoList -> Id -> IO ()
-setTodoAsDone todoList id = error "not implemented"
+setTodoAsDone todoList todoId = do
+  todo <- readTodo todoList todoId
+  updateTodo todoList todoId todo { isDone = True }
 
 -- Todo должны быть упорядочены по возрастанию deadline'а
 readAllTodo :: TodoList -> IO [Todo]
-readAllTodo todoList = error "not implemented"
+readAllTodo todoList@(TodoList rootFolder) = do
+  files <- listDirectory rootFolder
+  todo <- mapM (readTodo todoList . Id) files
+  return $ sort todo
 
 readUnfinishedTodo :: TodoList -> IO [Todo]
-readUnfinishedTodo todoList = error "not implemented"
+readUnfinishedTodo todoList = do
+  allTodo <- readAllTodo todoList
+  return $ filter (\(Todo _ _ _ _ isDone) -> not isDone) allTodo
+
+showTodos :: [Todo] -> IO ()
+showTodos = mapM_ $ putStrLn . show
 
 showAllTodo :: TodoList -> IO ()
-showAllTodo todoList = error "not implemented"
+showAllTodo todoList = readAllTodo todoList >>= showTodos
 
 showUnfinishedTodo :: TodoList -> IO ()
-showUnfinishedTodo todoList = error "not implemented"
+showUnfinishedTodo todoList = readUnfinishedTodo todoList >>= showTodos
 
 {-
   Напишите игру для угадывания случайного числа.
@@ -150,6 +203,21 @@ showUnfinishedTodo todoList = error "not implemented"
 -}
 
 playGuessGame :: IO ()
-playGuessGame = error "not implemented"
+playGuessGame = do
+  number <- randomRIO (1, 100)
+  playGuessGameHandleTurn number
+
+playGuessGameHandleTurn :: Int -> IO ()
+playGuessGameHandleTurn number = do
+  putStr "Your number: "
+  playerNumber <- readLn :: IO Int 
+  case compare playerNumber number of
+    GT -> do
+      putStrLn "Too small"
+      playGuessGameHandleTurn number
+    LT -> do
+      putStrLn "Too big"
+      playGuessGameHandleTurn number
+    EQ -> putStrLn "Yep, that's the number!"
 
 -- </Задачи для самостоятельного решения>
